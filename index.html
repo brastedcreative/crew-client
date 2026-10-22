@@ -58,7 +58,7 @@ main{padding:18px 0 48px}
 .who .t{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .who.none{border-style:dashed;color:var(--muted)}
 .pill{font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:4px;background:var(--sunk);color:var(--muted);white-space:nowrap;display:inline-block;margin:2px 4px 0 0}
-.pill.premium{background:var(--accent-soft);color:var(--accent)}.pill.social{background:var(--warn-soft);color:var(--warn)}.pill.high{background:var(--high-soft);color:var(--high)}
+.pill.premium{background:var(--accent-soft);color:var(--accent)}.pill.rush{background:var(--bad-soft);color:var(--bad)}.pill.social{background:var(--warn-soft);color:var(--warn)}.pill.high{background:var(--high-soft);color:var(--high)}
 .sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 10px;flex-wrap:wrap}
 h2{font-family:var(--display);font-size:21px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin:0}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
@@ -112,6 +112,9 @@ input,select,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);ba
 textarea{min-height:84px;resize:vertical}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.fee{margin-top:14px;border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft);border-radius:10px;padding:10px 12px;font-size:14px}
+.fee p{margin:0 0 8px;color:var(--ink)}.fee p::before{content:"⚠ ";color:var(--warn)}
+.fee label{display:flex;gap:8px;align-items:center;font-weight:600;cursor:pointer}.fee input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
 .err{color:var(--bad);font-size:13.5px;margin-top:10px;min-height:1em}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;font-weight:500;z-index:10;max-width:calc(100vw - 32px)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -136,7 +139,15 @@ textarea{min-height:84px;resize:vertical}
   <label class="fl" for="f-ev">Event</label><select id="f-ev"></select>
   <div id="f-time" hidden><span class="fl">New coverage time</span><div class="two"><input type="time" id="f-start" aria-label="New start time"><input type="time" id="f-end" aria-label="New end time"></div></div>
   <div id="f-room" hidden><label class="fl" for="f-roomv">New room</label><input id="f-roomv" maxlength="120" placeholder="Room or space name"></div>
+  <div id="f-photos" hidden>
+    <span class="fl" id="ph-what-l">Type of photos</span><div class="chips" id="ph-what" role="group" aria-labelledby="ph-what-l"></div>
+    <div class="two" style="margin-top:4px"><div><label class="fl" for="ph-by">Needed by</label><input type="datetime-local" id="ph-by"></div>
+      <div><label class="fl" for="ph-count">About how many (optional)</label><input type="number" id="ph-count" min="1" max="9999" inputmode="numeric" placeholder="e.g. 10"></div></div>
+    <span class="fl" id="ph-sizes-l">Sizes (pick at least one)</span>
+    <div class="chips" id="ph-sizes" role="group" aria-labelledby="ph-sizes-l"></div>
+  </div>
   <label class="fl" for="f-det" id="f-det-l">Details</label><textarea id="f-det" maxlength="1000" placeholder="What should change?"></textarea>
+  <div id="f-fee" class="fee" hidden><p id="f-fee-t"></p><label><input type="checkbox" id="f-fee-ok"> I understand and agree</label></div>
   <span class="fl">Your name &amp; email</span>
   <div class="two"><input id="f-name" autocomplete="name" placeholder="Name" maxlength="80" aria-label="Your name"><input id="f-email" type="email" autocomplete="email" placeholder="Email" aria-label="Your email"></div>
   <div class="err" id="f-err" role="alert"></div>
@@ -145,7 +156,9 @@ textarea{min-height:84px;resize:vertical}
 <script>
 (() => {
 const SB = "https://trgwbsqwobqkbtyuoric.supabase.co", KEY = "sb_publishable_aLvBWuLZpy98ekLQ69_dHg_4AifSc7U";
-const KINDS = ["Change a time", "Change room", "Shot request", "Add coverage", "Cancel coverage", "Other"];
+const KINDS = ["Change a time", "Change room", "Shot request", "Request photos", "Add coverage", "Cancel coverage", "Other"];
+const PHOTO_WHAT = ["Rush selects", "Specific shots", "Full gallery", "Social cuts", "Other"];
+const SIZES = [["web", "Web / email"], ["social", "Social (1:1 & 4:5)"], ["print", "Print / full size"]];
 const STAGE = {not_started: "Not started", editing: "Editing", delivered: "Delivered"};
 const token = new URLSearchParams(location.search).get("c") || "";
 const $ = s => document.querySelector(s);
@@ -185,9 +198,17 @@ const coverage = e => { const a = (e.crew || []).map(c => c.starts_at).filter(Bo
 const hm = iso => { const p = Object.fromEntries(fmt({hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).formatToParts(new Date(iso)).map(x => [x.type, x.value])); return `${p.hour}:${p.minute}`; };
 const coverOf = e => { const a = (e.crew || []).map(c => c.starts_at).filter(Boolean).sort()[0] || e.starts_at, b = (e.crew || []).map(c => c.ends_at).filter(Boolean).sort().pop() || e.ends_at || e.starts_at; return [a, b]; };
 const t12 = v => { if (!v) return "?"; let [h, m] = v.split(":").map(Number); const ap = h < 12 ? "AM" : "PM"; h = h % 12 || 12; return `${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`; };
+// "YYYY-MM-DDTHH:MM" in the event's zone, for the Needed by field
+const wall = iso => { const p = Object.fromEntries(fmt({year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).formatToParts(new Date(iso)).map(x => [x.type, x.value])); return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`; };
+let phWhat = PHOTO_WHAT[0], phSizes = new Set();
+const photoLine = ph => [ph.what, ph.count ? "about " + ph.count : "", (ph.sizes || []).map(z => ({web: "Web", social: "Social", print: "Print"})[z] || z).join(", "),
+  ph.by ? "by " + dayName(ph.by.slice(0, 10)).split(",")[0] + " " + t12(ph.by.slice(11, 16)) : ""].filter(Boolean).join(" · ");
+// Requests that may cost extra: the client agrees before sending
+const FEES = {"Add coverage": "Adding coverage may incur an additional fee or result in photographer overtime charges.",
+              "Request photos": "Rush or additional photo requests may incur an additional fee or result in editor overtime charges."};
 const requestsOn = () => data?.desk?.requests !== false;
 const place = e => e.sub_location || String(e.location || "").split(",")[0];
-const tagClass = t => /premium/i.test(t) ? "premium" : /social/i.test(t) ? "social" : /high/i.test(t) ? "high" : "";
+const tagClass = t => /rush/i.test(t) ? "rush" : /premium/i.test(t) ? "premium" : /social/i.test(t) ? "social" : /high/i.test(t) ? "high" : "";
 
 function crewPills(e) {
   if (!e.crew?.length) return `<span class="who none">To be assigned</span>`;
@@ -242,6 +263,7 @@ function render() {
         : `<div class="empty">No coverage scheduled this day.</div>`); }).join("");
   const reqHtml = reqs.length ? `<section class="reqs"><div class="sechead"><h2>Your requests</h2><span class="m">Sent from this browser</span></div>${reqs.map(r => `
     <div class="req"><div class="top"><b>${esc(r.kind)}</b><span class="m">· ${esc(shortTitle(r.event_title))} · ${esc(ago(r.created_at))}</span><span class="stt ${r.decision || (r.resolved_at ? "done" : "")}">${r.decision === "approved" ? "Approved" : r.decision === "declined" ? "Declined" : r.resolved_at ? "Resolved" : "Open"}</span></div>
+      ${r.changes?.photos ? `<div class="m">${esc(photoLine(r.changes.photos))}</div>` : ""}
       ${r.changes && (r.changes.start || r.changes.room) ? `<div class="m">${r.changes.start ? esc("New coverage " + t12(r.changes.start) + "–" + t12(r.changes.end)) : ""}${r.changes.start && r.changes.room ? " · " : ""}${r.changes.room ? esc("Room: " + r.changes.room) : ""}</div>` : ""}
       ${r.decision_note ? `<div class="reply"><div class="m">Producer · ${r.decision === "approved" ? "approved" : "declined"}</div>${esc(r.decision_note)}</div>` : ""}
       ${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}
@@ -296,6 +318,7 @@ function openReq(evKey) {
   $("#kinds").innerHTML = KINDS.map(k => `<button type="button" class="chip" data-kind="${esc(k)}" aria-pressed="${k === kind}">${esc(k)}</button>`).join("");
   $("#f-ev").innerHTML = `<option value="">Not about one event</option>` + evs.map(e => `<option value="${esc(e.key)}">${esc(shortTitle(e.title))} · ${esc(dayName(workDay(e.starts_at)).split(",")[0])} ${esc(tshort(e.starts_at))}</option>`).join("");
   $("#f-ev").value = evKey || "";
+  phWhat = PHOTO_WHAT[0]; phSizes = new Set(); $("#ph-by").value = ""; $("#ph-count").value = ""; $("#f-fee-ok").checked = false;
   prefill();
   $("#f-name").value = store.get("cv-name", ""); $("#f-email").value = store.get("cv-email", "");
   $("#f-err").textContent = ""; $("#f-send").disabled = false;
@@ -304,14 +327,23 @@ function openReq(evKey) {
 // Change a time / Change room ask for the new value (filled with what it is now), so approving can update the schedule
 function prefill() {
   const e = (data.events || []).find(x => x.key === $("#f-ev").value);
-  const isTime = kind === "Change a time" && e, isRoom = kind === "Change room" && e;
-  $("#f-time").hidden = !isTime; $("#f-room").hidden = !isRoom;
+  const isTime = kind === "Change a time" && e, isRoom = kind === "Change room" && e, isPhotos = kind === "Request photos";
+  $("#f-time").hidden = !isTime; $("#f-room").hidden = !isRoom; $("#f-photos").hidden = !isPhotos;
+  $("#f-fee").hidden = !FEES[kind]; if (FEES[kind]) $("#f-fee-t").textContent = FEES[kind];
+  if (isPhotos) {
+    $("#ph-what").innerHTML = PHOTO_WHAT.map(w => `<button type="button" class="chip" data-phwhat="${esc(w)}" aria-pressed="${w === phWhat}">${esc(w)}</button>`).join("");
+    $("#ph-sizes").innerHTML = SIZES.map(([k, l]) => `<button type="button" class="chip" data-phsize="${k}" aria-pressed="${phSizes.has(k)}">${esc(l)}</button>`).join("");
+    if (e && !$("#ph-by").value) $("#ph-by").value = e.deliverable?.due ? wall(e.deliverable.due) : wall(e.ends_at || e.starts_at);
+  }
   if (isTime) { const [a, b] = coverOf(e); $("#f-start").value = hm(a); $("#f-end").value = hm(b); }
   if (isRoom) $("#f-roomv").value = e.sub_location || "";
-  $("#f-det-l").textContent = isTime || isRoom ? "Anything else? (optional)" : "Details";
+  $("#f-det-l").textContent = isPhotos ? "Who or what (optional)" : isTime || isRoom ? "Anything else? (optional)" : "Details";
 }
-$("#f-ev").addEventListener("change", prefill);
-$("#kinds").addEventListener("click", e => { const b = e.target.closest("[data-kind]"); if (!b) return; kind = b.dataset.kind; prefill();
+$("#f-ev").addEventListener("change", () => { $("#ph-by").value = ""; prefill(); });
+$("#f-photos").addEventListener("click", e => {
+  const w = e.target.closest("[data-phwhat]"); if (w) { phWhat = w.dataset.phwhat; for (const c of $("#ph-what").children) c.setAttribute("aria-pressed", c.dataset.phwhat === phWhat); }
+  const z = e.target.closest("[data-phsize]"); if (z) { const k = z.dataset.phsize; phSizes.has(k) ? phSizes.delete(k) : phSizes.add(k); z.setAttribute("aria-pressed", phSizes.has(k)); $("#f-err").textContent = ""; } });
+$("#kinds").addEventListener("click", e => { const b = e.target.closest("[data-kind]"); if (!b) return; kind = b.dataset.kind; $("#f-fee-ok").checked = false; prefill();
   for (const c of $("#kinds").children) c.setAttribute("aria-pressed", c.dataset.kind === kind); });
 $("#f-cancel").addEventListener("click", () => $("#dlg").close());
 $("#f").addEventListener("submit", async e => {
@@ -321,13 +353,21 @@ $("#f").addEventListener("submit", async e => {
   if (kind === "Change a time" && ev) { const [a, b] = coverOf(ev), st = $("#f-start").value, en = $("#f-end").value;
     if (!st || !en) { $("#f-err").textContent = "Enter the new start and end times."; (st ? $("#f-end") : $("#f-start")).focus(); return; }
     if (st !== hm(a) || en !== hm(b)) changes = {start: st, end: en}; }
+  if (FEES[kind] && !$("#f-fee-ok").checked) { $("#f-err").textContent = "Please agree to the possible additional charges to send this."; $("#f-fee-ok").focus(); return; }
+  if (kind === "Request photos") {
+    if (!ev) { $("#f-err").textContent = "Pick the event you need photos from."; $("#f-ev").focus(); return; }
+    const by = $("#ph-by").value, n = parseInt($("#ph-count").value, 10);
+    if (!by) { $("#f-err").textContent = "Pick when you need them by."; $("#ph-by").focus(); return; }
+    if (!phSizes.size) { $("#f-err").textContent = "Pick at least one size."; $("#ph-sizes").querySelector("button").focus(); return; }
+    changes = {photos: {what: phWhat, by: by.slice(0, 16), sizes: [...phSizes], ...(n > 0 ? {count: n} : {})}};
+  }
   if (kind === "Change room" && ev) { const rm = $("#f-roomv").value.trim(); if (rm && rm !== (ev.sub_location || "")) changes = {room: rm}; }
   if (!det && !changes) { $("#f-err").textContent = (kind === "Change a time" || kind === "Change room") && ev ? "Change the time or room, or add a few words." : "Add a few words about what should change."; $("#f-det").focus(); return; }
   if (!name) { $("#f-err").textContent = "Add your name so the producer knows who asked."; $("#f-name").focus(); return; }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("#f-err").textContent = "That email doesn't look right."; $("#f-email").focus(); return; }
   $("#f-send").disabled = true; $("#f-err").textContent = "";
   try {
-    const id = await rpc("client_request", {token, kind, event_key: $("#f-ev").value, details: det, name, email, pw: pw || null, changes});
+    const id = await rpc("client_request", {token, kind, event_key: $("#f-ev").value, details: det, name, email, pw: pw || null, changes: FEES[kind] ? {...(changes || {}), fees_ok: true} : changes});
     store.set("cv-name", name); store.set("cv-email", email);
     store.set(reqKey, [id, ...store.get(reqKey, []).filter(x => x !== id)].slice(0, 50));
     $("#f-det").value = ""; $("#dlg").close(); toast("Request sent. The producer will get back to you here.");
