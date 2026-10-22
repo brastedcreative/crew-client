@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Event Coverage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F5F2; --surface:#FFFFFF; --sunk:#E9ECE6; --line:#D5DAD1; --ink:#18201D; --muted:#5D6762;
+  --accent:#7E2436; --accent-soft:#F3E3E6; --accent-ink:#FFFFFF;
+  --ok:#2F7A4F; --ok-soft:#E1F0E6; --warn:#A86A12; --warn-soft:#F7ECD8; --bad:#B3261E; --bad-soft:#F7E0DE;
+  --high:#C2410C; --high-soft:#FDE6D8; --info:#2F6DB5; --info-soft:#E0EAF6;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121614; --surface:#1A201D; --sunk:#232A26; --line:#323B36; --ink:#E6EBE7; --muted:#9AA59F;
+  --accent:#E07A8C; --accent-soft:#3A2228; --accent-ink:#1A0D10;
+  --ok:#6FCB94; --ok-soft:#1C3326; --warn:#E3AE57; --warn-soft:#3A2E1A; --bad:#F08A80; --bad-soft:#3D2120;
+  --high:#FF8F57; --high-soft:#3B2316; --info:#8DB8EC; --info-soft:#1C2A3A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121614; --surface:#1A201D; --sunk:#232A26; --line:#323B36; --ink:#E6EBE7; --muted:#9AA59F;
+  --accent:#E07A8C; --accent-soft:#3A2228; --accent-ink:#1A0D10;
+  --ok:#6FCB94; --ok-soft:#1C3326; --warn:#E3AE57; --warn-soft:#3A2E1A; --bad:#F08A80; --bad-soft:#3D2120;
+  --high:#FF8F57; --high-soft:#3B2316; --info:#8DB8EC; --info-soft:#1C2A3A; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4;-webkit-text-size-adjust:100%}
+a{color:var(--accent);font-weight:600}
+button{font:inherit;color:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+header{background:var(--surface);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:14px;padding-top:16px;padding-bottom:16px;flex-wrap:wrap}
+.logo{height:40px;max-width:120px;display:flex;align-items:center;justify-content:center;border-radius:8px;overflow:hidden;flex:none}
+.logo img{height:100%;width:auto;display:block}
+h1{font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.01em;text-transform:uppercase;margin:0;line-height:1.05}
+.sub{font-size:13px;color:var(--muted)}
+.hgrow{flex:1 1 220px;min-width:0}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:9px 14px;font-weight:600;font-size:14px;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn:disabled{opacity:.55;cursor:default}
+main{padding:18px 0 48px}
+.live{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px;min-width:0}
+.k{font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.k.on{color:var(--ok)}
+.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb,var(--ok) 22%,transparent);margin-right:7px;vertical-align:1px;animation:p 2s ease-in-out infinite}
+@keyframes p{50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--ok) 6%,transparent)}}
+@media (prefers-reduced-motion: reduce){.pulse{animation:none}}
+.lt{font-weight:700;font-size:16px;margin:4px 0 3px}
+.m{font-size:13px;color:var(--muted)}
+.lrow{display:flex;flex-direction:column;gap:10px}
+.lrow > div + div{border-top:1px solid var(--line);padding-top:10px}
+.who{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:1px 9px 1px 5px;background:var(--surface);white-space:nowrap;margin:2px 4px 2px 0}
+.who i{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.who .t{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.who.none{border-style:dashed;color:var(--muted)}
+.pill{font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:4px;background:var(--sunk);color:var(--muted);white-space:nowrap;display:inline-block;margin:2px 4px 0 0}
+.pill.premium{background:var(--accent-soft);color:var(--accent)}.pill.social{background:var(--warn-soft);color:var(--warn)}.pill.high{background:var(--high-soft);color:var(--high)}
+.sechead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 10px;flex-wrap:wrap}
+h2{font-family:var(--display);font-size:21px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin:0}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tab{border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:13.5px;background:var(--surface);cursor:pointer;font-weight:500}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sched{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.dayhead{font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);padding:10px 14px;background:var(--sunk);border-top:1px solid var(--line)}
+.dayhead:first-child{border-top:0}
+.cols,.row{display:grid;grid-template-columns:118px minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr);gap:14px;padding:11px 14px}
+.cols{font-family:var(--display);font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--sunk);padding-top:8px;padding-bottom:8px}
+.row{border-top:1px solid var(--line);align-items:start}
+.row{position:relative}
+.more{position:absolute;right:10px;bottom:9px;width:32px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--accent);font-weight:700;font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.more:hover,.more[aria-expanded="true"]{border-color:var(--accent)}
+.pop{position:absolute;z-index:5;min-width:200px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.22);padding:4px 0;overflow:hidden}
+.pop .ph{font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:7px 13px 4px}
+.pop button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 13px;font-size:14px;cursor:pointer}
+.pop button:hover,.pop button:focus-visible{background:var(--sunk);outline:none}
+.pop button.danger{color:var(--bad)}
+.row > div:last-of-type{padding-right:40px}
+.row.now{box-shadow:inset 3px 0 0 var(--ok)}
+.row.past{opacity:.72}
+.tm{font-family:var(--mono);font-size:12.5px;font-weight:500;padding-top:2px}
+.et{font-weight:600}
+.cov{font-size:13px;font-weight:600;margin-top:2px}.cov::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:6px;vertical-align:1px}
+.lbl-m{display:none}
+.st{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.st.delivered{background:var(--ok-soft);color:var(--ok)}.st.editing{background:var(--info-soft);color:var(--info)}.st.not_started{background:var(--sunk);color:var(--muted)}
+.empty{padding:26px 16px;text-align:center;color:var(--muted)}
+.reqs{margin-top:26px}
+.req{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.req .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.req .stt{margin-left:auto;font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--warn-soft);color:var(--warn)}
+.req .stt.done,.req .stt.approved{background:var(--ok-soft);color:var(--ok)}.req .stt.declined{background:var(--bad-soft);color:var(--bad)}
+.reply{margin-top:9px;border-left:3px solid var(--ok);padding:4px 0 4px 10px;font-size:14px}
+.reply .m{font-size:12px}
+.note{white-space:pre-wrap;font-size:14px;margin-top:4px}
+.center{min-height:60vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+.center h1{font-size:26px;margin-bottom:6px}
+footer{color:var(--muted);font-size:12.5px;text-align:center;padding:0 16px 30px}
+/* request sheet */
+dialog{border:0;padding:0;border-radius:14px;background:var(--surface);color:var(--ink);width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 24px);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,14,12,.5)}
+.dlg{padding:18px 18px 16px}
+.dlg h3{font-family:var(--display);font-size:24px;text-transform:uppercase;margin:0 0 2px}
+.fl{font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;display:block}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13.5px;background:var(--surface);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input,select,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+textarea{min-height:84px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acts{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.err{color:var(--bad);font-size:13.5px;margin-top:10px;min-height:1em}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;font-weight:500;z-index:10;max-width:calc(100vw - 32px)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:720px){
+  h1{font-size:23px}
+  .live{grid-template-columns:1fr}
+  .cols{display:none}
+  .row{grid-template-columns:1fr;gap:6px}
+  .tm{padding-top:0}
+  .lbl-m{display:inline;font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:6px}
+  header .btn.primary{width:100%}
+  .two{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="app"><div class="center"><div class="m">Loading…</div></div></div>
+<dialog id="dlg" aria-labelledby="dlg-h"><form class="dlg" id="f" method="dialog" novalidate>
+  <h3 id="dlg-h">Request a change</h3><div class="m" id="dlg-sub"></div>
+  <span class="fl" id="kind-l">What do you need?</span>
+  <div class="chips" id="kinds" role="group" aria-labelledby="kind-l"></div>
+  <label class="fl" for="f-ev">Event</label><select id="f-ev"></select>
+  <div id="f-time" hidden><span class="fl">New coverage time</span><div class="two"><input type="time" id="f-start" aria-label="New start time"><input type="time" id="f-end" aria-label="New end time"></div></div>
+  <div id="f-room" hidden><label class="fl" for="f-roomv">New room</label><input id="f-roomv" maxlength="120" placeholder="Room or space name"></div>
+  <label class="fl" for="f-det" id="f-det-l">Details</label><textarea id="f-det" maxlength="1000" placeholder="What should change?"></textarea>
+  <span class="fl">Your name &amp; email</span>
+  <div class="two"><input id="f-name" autocomplete="name" placeholder="Name" maxlength="80" aria-label="Your name"><input id="f-email" type="email" autocomplete="email" placeholder="Email" aria-label="Your email"></div>
+  <div class="err" id="f-err" role="alert"></div>
+  <div class="acts"><button class="btn" type="button" id="f-cancel">Cancel</button><button class="btn primary" type="submit" id="f-send">Send request</button></div>
+</form></dialog>
+<script>
+(() => {
+const SB = "https://trgwbsqwobqkbtyuoric.supabase.co", KEY = "sb_publishable_aLvBWuLZpy98ekLQ69_dHg_4AifSc7U";
+const KINDS = ["Change a time", "Change room", "Shot request", "Add coverage", "Cancel coverage", "Other"];
+const STAGE = {not_started: "Not started", editing: "Editing", delivered: "Delivered"};
+const token = new URLSearchParams(location.search).get("c") || "";
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const store = {get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+               set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }};
+const reqKey = "cv-req-" + token.slice(0, 12), pwKey = "cv-pw-" + token.slice(0, 12);
+let pw = store.get(pwKey, ""), locked = null;
+let data = null, reqs = [], day = null, kind = KINDS[1], tz = "America/Chicago";
+
+async function rpc(fn, args) {
+  const r = await fetch(`${SB}/rest/v1/rpc/${fn}`, {method: "POST",
+    headers: {apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json"}, body: JSON.stringify(args)});
+  const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch {}
+  if (!r.ok) throw new Error((j && (j.message || j.hint)) || `Request failed (${r.status})`);
+  return j;
+}
+
+// Times in the event's own time zone
+const fmt = (o) => new Intl.DateTimeFormat("en-US", {timeZone: tz, ...o});
+const parts = d => Object.fromEntries(fmt({year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23"}).formatToParts(d).map(x => [x.type, x.value]));
+// A working day runs 5 AM to 5 AM, so a 1 AM after-party sits with the night before
+const workDay = iso => { const d = new Date(new Date(iso).getTime() - 5 * 3600e3), p = parts(d); return `${p.year}-${p.month}-${p.day}`; };
+const tshort = iso => { const s = fmt({hour: "numeric", minute: "2-digit"}).format(new Date(iso)); return s.replace(":00", "").replace(/\s?([AP])M/, (m, a) => " " + a + "M"); };
+const range = (a, b) => { if (!a) return ""; if (!b) return tshort(a); const x = tshort(a), y = tshort(b);
+  const sa = x.slice(-2), sb = y.slice(-2); return (sa === sb ? x.slice(0, -3) : x) + "–" + y; };
+const dayName = ymd => { const [Y, M, D] = ymd.split("-").map(Number); return new Intl.DateTimeFormat("en-US", {timeZone: "UTC", weekday: "short", month: "short", day: "numeric"}).format(new Date(Date.UTC(Y, M - 1, D, 12))); };
+const longDay = ymd => { const [Y, M, D] = ymd.split("-").map(Number); return new Intl.DateTimeFormat("en-US", {timeZone: "UTC", weekday: "long", month: "long", day: "numeric"}).format(new Date(Date.UTC(Y, M - 1, D, 12))); };
+const dueText = iso => { const d = new Date(iso), today = workDay(new Date().toISOString()), w = workDay(iso);
+  return (w === today ? "" : dayName(w).split(",")[0] + " ") + tshort(iso); };
+const ago = iso => { const s = (Date.now() - new Date(iso)) / 1000; if (s < 90) return "just now"; if (s < 3600) return Math.round(s / 60) + " min ago";
+  if (s < 86400) return Math.round(s / 3600) + " hr ago"; return Math.round(s / 86400) + " days ago"; };
+const shortTitle = t => String(t || "").replace(/\s+(presented by|featuring|hosted by|sponsored by)\s.*$/i, "");
+// Full coverage: first photographer's start to the last one's finish
+const coverage = e => { const a = (e.crew || []).map(c => c.starts_at).filter(Boolean).sort()[0], b = (e.crew || []).map(c => c.ends_at).filter(Boolean).sort().pop();
+  return a && b ? `<div class="cov">Coverage ${esc(range(a, b))}</div>` : ""; };
+const hm = iso => { const p = Object.fromEntries(fmt({hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).formatToParts(new Date(iso)).map(x => [x.type, x.value])); return `${p.hour}:${p.minute}`; };
+const coverOf = e => { const a = (e.crew || []).map(c => c.starts_at).filter(Boolean).sort()[0] || e.starts_at, b = (e.crew || []).map(c => c.ends_at).filter(Boolean).sort().pop() || e.ends_at || e.starts_at; return [a, b]; };
+const t12 = v => { if (!v) return "?"; let [h, m] = v.split(":").map(Number); const ap = h < 12 ? "AM" : "PM"; h = h % 12 || 12; return `${h}${m ? ":" + String(m).padStart(2, "0") : ""} ${ap}`; };
+const requestsOn = () => data?.desk?.requests !== false;
+const place = e => e.sub_location || String(e.location || "").split(",")[0];
+const tagClass = t => /premium/i.test(t) ? "premium" : /social/i.test(t) ? "social" : /high/i.test(t) ? "high" : "";
+
+function crewPills(e) {
+  if (!e.crew?.length) return `<span class="who none">To be assigned</span>`;
+  return e.crew.map(c => { const own = c.starts_at && (c.starts_at !== e.starts_at || c.ends_at !== e.ends_at);
+    return `<span class="who"><i style="background:${esc(/^#[0-9a-f]{3,8}$/i.test(c.color || "") ? c.color : "#8A938E")}"></i>${esc(c.name)}${own ? ` <span class="t">${esc(range(c.starts_at, c.ends_at))}</span>` : ""}</span>`; }).join("");
+}
+function deliv(e) {
+  const d = e.deliverable; if (!d) return `<span class="m">—</span>`;
+  const st = STAGE[d.status] ? d.status : "not_started";
+  return `<span class="st ${st}">${STAGE[st]}</span>` +
+    (st !== "delivered" && d.due ? `<div class="m">${esc(d.due_label || "Photos")} due ${esc(dueText(d.due))}</div>` : "") +
+    (d.gallery ? `<div><a href="${esc(d.gallery)}" target="_blank" rel="noopener noreferrer">Open gallery ↗</a></div>` : "");
+}
+function liveCard(e, now) {
+  return `<div><div class="lt">${esc(shortTitle(e.title))}</div><div class="m">${esc(now ? "Until " + tshort(e.ends_at) : (workDay(e.starts_at) === workDay(new Date().toISOString()) ? "" : dayName(workDay(e.starts_at)).split(",")[0] + " ") + range(e.starts_at, e.ends_at))}${place(e) ? " · " + esc(place(e)) : ""}</div>${coverage(e)}<div style="margin-top:5px">${crewPills(e)}</div></div>`;
+}
+
+function render() {
+  const app = $("#app");
+  if (!token) { app.innerHTML = `<div class="center"><div><h1>Event coverage</h1><div class="m">Open the link your producer sent you to see your event.</div></div></div>`; return; }
+  if (locked) { app.innerHTML = `<div class="center"><form id="pwf" style="width:min(340px,100%)"><h1>Event coverage</h1>
+      <div class="m" style="margin-bottom:14px">Enter the password your producer gave you.</div>
+      <input type="password" id="pw" autocomplete="current-password" aria-label="Password" placeholder="Password" required>
+      <div class="err" role="alert">${locked.wrong ? "That password didn't work. Check it and try again." : ""}</div>
+      <button class="btn primary" type="submit" style="width:100%;margin-top:8px" id="pwgo">View coverage</button></form></div>`;
+    $("#pw").focus();
+    $("#pwf").addEventListener("submit", async e => { e.preventDefault(); const v = $("#pw").value; if (!v) return;
+      $("#pwgo").disabled = true; pw = v; await load(); if (!locked) store.set(pwKey, pw); else { $("#pwgo").disabled = false; } });
+    return; }
+  if (!data) { app.innerHTML = `<div class="center"><div><h1>This link isn't active</h1><div class="m">It may have been turned off or replaced. Ask your producer for the current link.</div></div></div>`; return; }
+  const desk = data.desk || {}, evs = (data.events || []).filter(e => e.starts_at), nowMs = Date.now();
+  tz = desk.time_zone || tz; document.title = (desk.name || "Event") + " · Coverage";
+  const dayList = [...new Set([...(desk.days || []).map(d => d.date), ...evs.map(e => workDay(e.starts_at))].filter(Boolean))].sort();
+  const labelOf = Object.fromEntries((desk.days || []).map(d => [d.date, d.label]));
+  if (!day || (day !== "all" && !dayList.includes(day))) { const t = workDay(new Date().toISOString());
+    day = dayList.includes(t) ? t : (dayList.find(d => d > t) || dayList[dayList.length - 1] || "all"); }
+  const live = evs.filter(e => new Date(e.starts_at) <= nowMs && nowMs < new Date(e.ends_at || e.starts_at));
+  const next = evs.filter(e => new Date(e.starts_at) > nowMs).slice(0, live.length ? 1 : 2);
+  const logo = desk.logo?.data && /^data:image\//.test(desk.logo.data)
+    ? `<div class="logo" style="${desk.logo.bg && desk.logo.bg !== "none" ? "background:" + esc(desk.logo.bg) + ";padding:4px" : ""}"><img src="${esc(desk.logo.data)}" alt=""></div>` : "";
+  const shown = day === "all" ? dayList : [day];
+  const rows = shown.map(d => { const list = evs.filter(e => workDay(e.starts_at) === d);
+    return (day === "all" ? `<div class="dayhead">${esc(longDay(d))}${labelOf[d] ? " · " + esc(labelOf[d]) : ""}</div>` : "") +
+      (list.length ? list.map(e => { const s = new Date(e.starts_at), en = new Date(e.ends_at || e.starts_at);
+        const cls = s <= nowMs && nowMs < en ? "now" : en < nowMs ? "past" : "";
+        const tags = (e.tags || []).map(t => `<span class="pill ${tagClass(t)}">${esc(t)}</span>`).join("");
+        return `<div class="row ${cls}"><div class="tm">${esc(range(e.starts_at, e.ends_at))}</div>
+          <div><div class="et">${esc(e.title)}</div>${place(e) ? `<div class="m">${esc(place(e))}</div>` : ""}${coverage(e)}${tags ? `<div>${tags}</div>` : ""}</div>
+          <div><span class="lbl-m">Photographer</span>${crewPills(e)}</div>
+          <div><span class="lbl-m">Photos</span>${deliv(e)}</div>
+          ${requestsOn() ? `<button class="more" type="button" data-more="${esc(e.key)}" aria-haspopup="menu" aria-expanded="false" aria-label="Request a change to ${esc(shortTitle(e.title))}" title="Request a change">⋯</button>` : ""}</div>`; }).join("")
+        : `<div class="empty">No coverage scheduled this day.</div>`); }).join("");
+  const reqHtml = reqs.length ? `<section class="reqs"><div class="sechead"><h2>Your requests</h2><span class="m">Sent from this browser</span></div>${reqs.map(r => `
+    <div class="req"><div class="top"><b>${esc(r.kind)}</b><span class="m">· ${esc(shortTitle(r.event_title))} · ${esc(ago(r.created_at))}</span><span class="stt ${r.decision || (r.resolved_at ? "done" : "")}">${r.decision === "approved" ? "Approved" : r.decision === "declined" ? "Declined" : r.resolved_at ? "Resolved" : "Open"}</span></div>
+      ${r.changes && (r.changes.start || r.changes.room) ? `<div class="m">${r.changes.start ? esc("New coverage " + t12(r.changes.start) + "–" + t12(r.changes.end)) : ""}${r.changes.start && r.changes.room ? " · " : ""}${r.changes.room ? esc("Room: " + r.changes.room) : ""}</div>` : ""}
+      ${r.decision_note ? `<div class="reply"><div class="m">Producer · ${r.decision === "approved" ? "approved" : "declined"}</div>${esc(r.decision_note)}</div>` : ""}
+      ${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}
+      ${(r.replies || []).filter(x => !x.mine).map(x => `<div class="reply"><div class="m">Producer · ${esc(ago(x.at))}</div>${esc(x.body)}</div>`).join("")}</div>`).join("")}</section>` : "";
+
+  app.innerHTML = `<header><div class="wrap">${logo}<div class="hgrow"><h1>${esc(desk.name || "Event coverage")}</h1>
+      <div class="sub">Photo coverage schedule · updated ${esc(desk.published_at ? ago(desk.published_at) : "recently")}</div></div>
+      ${requestsOn() ? `<button class="btn primary" type="button" id="open-req">Request a change</button>` : ""}</div></header>
+    <main><div class="wrap">
+      <div class="live">
+        <div class="card"><div class="k ${live.length ? "on" : ""}">${live.length ? `<span class="pulse"></span>On now` : "On now"}</div>
+          ${live.length ? `<div class="lrow">${live.map(e => liveCard(e, true)).join("")}</div>` : `<div class="m" style="margin-top:6px">Nothing is being covered right now.</div>`}</div>
+        <div class="card"><div class="k">Next</div>
+          ${next.length ? `<div class="lrow">${next.map(e => liveCard(e, false)).join("")}</div>` : `<div class="m" style="margin-top:6px">No more coverage scheduled.</div>`}</div>
+      </div>
+      <div class="sechead"><h2>Coverage schedule</h2><span class="m">Times in ${esc(fmt({timeZoneName: "short"}).formatToParts(new Date()).find(p => p.type === "timeZoneName")?.value || tz)}</span></div>
+      <div class="tabs" role="tablist">${dayList.map(d => `<button class="tab" role="tab" type="button" data-day="${d}" aria-selected="${d === day}">${esc(dayName(d))}</button>`).join("")}<button class="tab" role="tab" type="button" data-day="all" aria-selected="${day === "all"}">All days</button></div>
+      <div class="sched"><div class="cols"><div>Time</div><div>Event</div><div>Photographer</div><div>Photos</div></div>${rows || `<div class="empty">No coverage scheduled yet.</div>`}</div>
+      ${reqHtml}
+    </div></main>
+    <footer>Live view of your event's photo coverage. It refreshes on its own.</footer>`;
+}
+
+// ⋯ on an event: pick a request type, then the form opens with the event and type filled in
+function closePop() { document.querySelector(".pop")?.remove(); document.querySelectorAll('.more[aria-expanded="true"]').forEach(b => b.setAttribute("aria-expanded", "false")); }
+function openPop(btn) {
+  closePop(); btn.setAttribute("aria-expanded", "true");
+  const pop = document.createElement("div"); pop.className = "pop"; pop.setAttribute("role", "menu");
+  pop.innerHTML = `<div class="ph">Request a change</div>` + KINDS.map(k => `<button type="button" role="menuitem" data-pick="${esc(k)}" class="${k === "Cancel coverage" ? "danger" : ""}">${esc(k === "Other" ? "Other…" : k)}</button>`).join("");
+  pop.dataset.ev = btn.dataset.more; document.body.appendChild(pop);
+  const r = btn.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+  const left = Math.max(8, Math.min(r.right - w, innerWidth - w - 8)) + scrollX;
+  const top = (r.bottom + h + 8 > innerHeight && r.top > h + 8 ? r.top - h - 4 : r.bottom + 4) + scrollY;
+  pop.style.left = left + "px"; pop.style.top = top + "px"; pop.querySelector("button").focus();
+}
+document.addEventListener("keydown", e => { const pop = document.querySelector(".pop"); if (!pop) return;
+  if (e.key === "Escape") { const b = document.querySelector('.more[aria-expanded="true"]'); closePop(); b?.focus(); }
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const items = [...pop.querySelectorAll("button")], i = items.indexOf(document.activeElement);
+    items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus(); } });
+document.addEventListener("click", e => {
+  const pick = e.target.closest("[data-pick]"); if (pick) { const ev = pick.closest(".pop").dataset.ev; kind = pick.dataset.pick; closePop(); openReq(ev); return; }
+  const more = e.target.closest("[data-more]"); if (more) { if (more.getAttribute("aria-expanded") === "true") closePop(); else openPop(more); return; }
+  if (!e.target.closest(".pop")) closePop();
+  const t = e.target.closest("[data-day]"); if (t) { day = t.dataset.day; render(); return; }
+  if (e.target.closest("#open-req")) { kind = KINDS[0]; openReq(); }
+});
+
+// Request a change
+function openReq(evKey) {
+  const evs = (data.events || []).filter(e => e.starts_at);
+  $("#dlg-sub").textContent = data.desk?.name || "";
+  $("#kinds").innerHTML = KINDS.map(k => `<button type="button" class="chip" data-kind="${esc(k)}" aria-pressed="${k === kind}">${esc(k)}</button>`).join("");
+  $("#f-ev").innerHTML = `<option value="">Not about one event</option>` + evs.map(e => `<option value="${esc(e.key)}">${esc(shortTitle(e.title))} · ${esc(dayName(workDay(e.starts_at)).split(",")[0])} ${esc(tshort(e.starts_at))}</option>`).join("");
+  $("#f-ev").value = evKey || "";
+  prefill();
+  $("#f-name").value = store.get("cv-name", ""); $("#f-email").value = store.get("cv-email", "");
+  $("#f-err").textContent = ""; $("#f-send").disabled = false;
+  $("#dlg").showModal(); setTimeout(() => $("#f-det").focus(), 30);
+}
+// Change a time / Change room ask for the new value (filled with what it is now), so approving can update the schedule
+function prefill() {
+  const e = (data.events || []).find(x => x.key === $("#f-ev").value);
+  const isTime = kind === "Change a time" && e, isRoom = kind === "Change room" && e;
+  $("#f-time").hidden = !isTime; $("#f-room").hidden = !isRoom;
+  if (isTime) { const [a, b] = coverOf(e); $("#f-start").value = hm(a); $("#f-end").value = hm(b); }
+  if (isRoom) $("#f-roomv").value = e.sub_location || "";
+  $("#f-det-l").textContent = isTime || isRoom ? "Anything else? (optional)" : "Details";
+}
+$("#f-ev").addEventListener("change", prefill);
+$("#kinds").addEventListener("click", e => { const b = e.target.closest("[data-kind]"); if (!b) return; kind = b.dataset.kind; prefill();
+  for (const c of $("#kinds").children) c.setAttribute("aria-pressed", c.dataset.kind === kind); });
+$("#f-cancel").addEventListener("click", () => $("#dlg").close());
+$("#f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const det = $("#f-det").value.trim(), name = $("#f-name").value.trim(), email = $("#f-email").value.trim();
+  const ev = (data.events || []).find(x => x.key === $("#f-ev").value); let changes = null;
+  if (kind === "Change a time" && ev) { const [a, b] = coverOf(ev), st = $("#f-start").value, en = $("#f-end").value;
+    if (!st || !en) { $("#f-err").textContent = "Enter the new start and end times."; (st ? $("#f-end") : $("#f-start")).focus(); return; }
+    if (st !== hm(a) || en !== hm(b)) changes = {start: st, end: en}; }
+  if (kind === "Change room" && ev) { const rm = $("#f-roomv").value.trim(); if (rm && rm !== (ev.sub_location || "")) changes = {room: rm}; }
+  if (!det && !changes) { $("#f-err").textContent = (kind === "Change a time" || kind === "Change room") && ev ? "Change the time or room, or add a few words." : "Add a few words about what should change."; $("#f-det").focus(); return; }
+  if (!name) { $("#f-err").textContent = "Add your name so the producer knows who asked."; $("#f-name").focus(); return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { $("#f-err").textContent = "That email doesn't look right."; $("#f-email").focus(); return; }
+  $("#f-send").disabled = true; $("#f-err").textContent = "";
+  try {
+    const id = await rpc("client_request", {token, kind, event_key: $("#f-ev").value, details: det, name, email, pw: pw || null, changes});
+    store.set("cv-name", name); store.set("cv-email", email);
+    store.set(reqKey, [id, ...store.get(reqKey, []).filter(x => x !== id)].slice(0, 50));
+    $("#f-det").value = ""; $("#dlg").close(); toast("Request sent. The producer will get back to you here.");
+    await loadReqs(); render();
+  } catch (err) { $("#f-err").textContent = "Couldn't send: " + err.message; $("#f-send").disabled = false; }
+});
+
+function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 3800); }
+
+async function loadReqs() { const ids = store.get(reqKey, []); if (!ids.length) { reqs = []; return; }
+  try { reqs = await rpc("client_requests", {token, ids, pw: pw || null}) || []; } catch {} }
+async function load() {
+  if (!token) { render(); return; }
+  try { const r = await rpc("client_view", {token, pw: pw || null});
+    if (r && r.locked) { locked = r; data = null; if (pw) store.set(pwKey, ""); render(); return; }
+    locked = null; data = r; await loadReqs(); render(); }
+  catch (err) { if (!data) $("#app").innerHTML = `<div class="center"><div><h1>Couldn't load</h1><div class="m">${esc(err.message)}. Check your connection and refresh.</div></div></div>`; }
+}
+load();
+setInterval(() => { if (!$("#dlg").open && !document.querySelector(".pop") && !locked && document.visibilityState === "visible") load(); }, 60000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && !$("#dlg").open && !locked) load(); });
+})();
+</script>
+</body>
+</html>
