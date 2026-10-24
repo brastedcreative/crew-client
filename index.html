@@ -87,6 +87,17 @@ h2{font-family:var(--display);font-size:21px;font-weight:700;text-transform:uppe
 .lbl-m{display:none}
 .st{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
 .st.delivered{background:var(--ok-soft);color:var(--ok)}.st.editing{background:var(--info-soft);color:var(--info)}.st.not_started{background:var(--sunk);color:var(--muted)}
+.st.unscheduled{background:var(--sunk);color:var(--muted)}.st.scheduled{background:var(--sunk);color:var(--ink)}.st.capturing{background:var(--accent-soft);color:var(--accent)}.st.approval{background:var(--warn-soft);color:var(--warn)}.st.ready{background:var(--ok-soft);color:var(--ok)}
+.trk{display:flex;align-items:flex-start;margin:7px 0 4px;max-width:300px}
+.trk .s{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative;min-width:0}
+.trk .s::before{content:"";position:absolute;top:4px;left:-50%;right:50%;height:2px;background:var(--line)}
+.trk .s:first-child::before{display:none}
+.trk .s.on::before{background:var(--c)}
+.trk i{width:10px;height:10px;border-radius:50%;border:2px solid var(--line);background:var(--surface);position:relative;z-index:1;box-sizing:border-box}
+.trk .s.on i{background:var(--c);border-color:var(--c)}
+.trk .s.at i{box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 25%,transparent)}
+.trk span{font-size:10px;line-height:1.1;font-weight:600;color:var(--muted);text-align:center}
+.trk .s.at span{color:var(--ink)}
 .empty{padding:26px 16px;text-align:center;color:var(--muted)}
 .reqs{margin-top:26px}
 .req{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
@@ -160,6 +171,15 @@ const KINDS = ["Change a time", "Change room", "Shot request", "Request photos",
 const PHOTO_WHAT = ["Rush selects", "Specific shots", "Full gallery", "Social cuts", "Other"];
 const SIZES = [["web", "Web / email"], ["social", "Social (1:1 & 4:5)"], ["print", "Print / full size"]];
 const STAGE = {not_started: "Not started", editing: "Editing", delivered: "Delivered"};
+// Client status stages (desk Settings -> Client view -> Status stages). Approval only on events that ask for it.
+const STAGES = {unscheduled: "Unscheduled", scheduled: "Scheduled", capturing: "Capturing", editing: "Editing", approval: "Waiting for approval", ready: "Ready"};
+const STAGE_C = {scheduled: "var(--ink)", capturing: "var(--accent)", editing: "var(--info)", approval: "var(--warn)", ready: "var(--ok)"};
+function track(e) {
+  const st = e.stage; if (!STAGES[st] || st === "unscheduled") return "";
+  const steps = ["scheduled", "capturing", "editing", ...(e.ask_approvals || st === "approval" ? ["approval"] : []), "ready"], at = steps.indexOf(st);
+  return `<div class="trk" style="--c:${STAGE_C[st]}" role="img" aria-label="Photos: ${esc(STAGES[st])}, step ${at + 1} of ${steps.length}">${steps.map((x, i) =>
+    `<div class="s${i <= at ? " on" : ""}${i === at ? " at" : ""}"><i></i><span>${x === "approval" ? "Approval" : STAGES[x]}</span></div>`).join("")}</div>`;
+}
 const token = new URLSearchParams(location.search).get("c") || "";
 const $ = s => document.querySelector(s);
 const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
@@ -216,7 +236,12 @@ function crewPills(e) {
     return `<span class="who"><i style="background:${esc(/^#[0-9a-f]{3,8}$/i.test(c.color || "") ? c.color : "#8A938E")}"></i>${esc(c.name)}${own ? ` <span class="t">${esc(range(c.starts_at, c.ends_at))}</span>` : ""}</span>`; }).join("");
 }
 function deliv(e) {
+  if (STAGES[e.stage]) { const d = e.deliverable || {};
+    return `<span class="st ${e.stage}">${STAGES[e.stage]}</span>` + track(e) +
+      (e.stage !== "ready" && d.status !== "delivered" && d.due ? `<div class="m">${esc(d.due_label || "Photos")} due ${esc(dueText(d.due))}</div>` : "") +
+      (d.gallery ? `<div><a href="${esc(d.gallery)}" target="_blank" rel="noopener noreferrer">Open gallery ↗</a></div>` : ""); }
   const d = e.deliverable; if (!d) return `<span class="m">—</span>`;
+  if (data?.desk?.stages === false) return d.gallery ? `<a href="${esc(d.gallery)}" target="_blank" rel="noopener noreferrer">Open gallery ↗</a>` : `<span class="m">—</span>`;
   const st = STAGE[d.status] ? d.status : "not_started";
   return `<span class="st ${st}">${STAGE[st]}</span>` +
     (st !== "delivered" && d.due ? `<div class="m">${esc(d.due_label || "Photos")} due ${esc(dueText(d.due))}</div>` : "") +
