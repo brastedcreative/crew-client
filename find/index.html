@@ -46,8 +46,8 @@ p{margin:0 0 12px}
 .btn.block{width:100%}
 .btn:disabled{opacity:.55;cursor:default}
 label.f{display:block;font-weight:600;margin:14px 0 6px}
-input[type=email]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
-input[type=email]:focus{outline:2px solid var(--accent);outline-offset:1px}
+input[type=email],input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+input[type=email]:focus,input[type=text]:focus{outline:2px solid var(--accent);outline-offset:1px}
 .selfie{display:flex;align-items:center;gap:14px;margin-top:6px}
 .selfie .ph{width:84px;height:84px;border-radius:50%;background:var(--sunk);border:1px dashed var(--line);flex:none;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px}
 .selfie .ph img{width:100%;height:100%;object-fit:cover}
@@ -73,6 +73,18 @@ input[type=email]:focus{outline:2px solid var(--accent);outline-offset:1px}
 .poster h1{font-size:56px}
 .poster .q{display:inline-block;background:#fff;padding:18px;border-radius:12px;margin:26px 0 18px}
 .poster .steps{font-size:20px;line-height:1.6;color:var(--ink)}
+.vip{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid var(--line)}
+.vip:first-of-type{border-top:0;padding-top:4px}
+.vip .who{flex:1;min-width:0}
+.vip .who b{display:block}
+.vip .acts{display:flex;gap:6px;flex:none}
+.vip .acts .btn{padding:7px 12px;font-size:13.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{background:var(--sunk);border-radius:999px;padding:2px 10px;font-size:12.5px}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.sess{display:grid;grid-template-columns:1fr;gap:4px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg)}
+.sess label{display:flex;gap:8px;align-items:center;font-size:14px}
+.sess input{width:18px;height:18px;accent-color:var(--accent);flex:none}
 @media print{.noprint{display:none} body{background:#fff;color:#000} .poster h1{font-size:64px}}
 .spin{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:s .8s linear infinite;display:inline-block}
 @keyframes s{to{transform:rotate(360deg)}}
@@ -209,9 +221,83 @@ async function mine(token) {
   };
 }
 
+// ---------------------------------------------------------------- VIP list (?v=…), for producers
+// The people to name in the photos. Goblin Editor adds their names to Persons shown, and names plus keywords to
+// Keywords, on every frame they're found in.
+async function vipPage(token) {
+  let d;
+  try { d = await api(`/vips?v=${token}`); } catch (e) { return fail(e.message); }
+  const $ = (id) => document.getElementById(id);
+  const sessionName = new Map(d.sessions.map((s) => [s.key, s.title ? `${s.key} ${s.title}` : s.key]));
+  let editing = null, headshot = null;
+  const render = () => {
+    page(d, `<div class="card">
+      <h2>VIPs</h2>
+      <p>Add the people who should be named in the photos: speakers, honorees, sponsors. Use one clear headshot each. When they're found in a frame, Goblin Editor fills in <b>Persons shown</b> with their name and adds their keywords.</p>
+      ${d.enabled ? "" : `<div class="err">Face search is off for this event, so VIPs can't be added.</div>`}
+      ${d.enabled && d.mode !== "live" ? `<div class="err">VIP tagging only runs for Live events. This event is set to After approval, so names won't be added until it's switched to Live.</div>` : ""}
+      ${d.vips.length ? d.vips.map((v) => `<div class="vip"><div class="who"><b>${esc(v.name)}</b>
+          <div class="chips">${v.ready ? `<span class="chip ok">${v.photos} ${v.photos === 1 ? "photo" : "photos"}</span>` : `<span class="chip">No face yet</span>`}
+          ${(v.keywords || []).map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div>
+          <div class="m" style="margin-top:6px">${v.events?.length ? "Only in: " + v.events.map((k) => esc(sessionName.get(k) || k)).join(", ") : "Any session"}</div></div>
+        <div class="acts"><button class="btn" data-edit="${esc(v.id)}">Edit</button><button class="btn" data-del="${esc(v.id)}" aria-label="Remove ${esc(v.name)}">Remove</button></div></div>`).join("")
+        : `<p class="m" style="margin:0">No VIPs yet.</p>`}
+    </div>
+    ${d.enabled ? `<div class="card" id="formcard">
+      <h2>${editing ? "Edit " + esc(editing.name) : "Add a VIP"}</h2>
+      <form id="vf" novalidate>
+        <label class="f" for="vn">Name, as it should appear in Persons shown</label>
+        <input id="vn" type="text" maxlength="120" autocomplete="off" value="${esc(editing?.name || "")}">
+        <label class="f">Headshot${editing ? " (only to replace it)" : ""}</label>
+        <div class="selfie"><div class="ph" id="ph">${editing ? "Kept" : "No photo"}</div>
+          <div><label class="btn" for="hs">Choose photo</label><input id="hs" type="file" accept="image/*" hidden>
+          <div class="m" style="margin-top:6px">Just them, facing the camera. Not stored; only used to find them.</div></div></div>
+        <label class="f" for="vk">Keywords <span class="m">(comma separated, optional)</span></label>
+        <input id="vk" type="text" autocomplete="off" placeholder="Keynote speaker, CEO" value="${esc((editing?.keywords || []).join(", "))}">
+        <label class="f">Sessions <span class="m">(none ticked = any session)</span></label>
+        ${d.sessions.length ? `<div class="sess">${d.sessions.map((s) => `<label><input type="checkbox" value="${esc(s.key)}" ${editing?.events?.includes(s.key) ? "checked" : ""}> ${esc(sessionName.get(s.key))}</label>`).join("")}</div>` : `<p class="m">No sessions on the schedule yet.</p>`}
+        <p style="margin-top:16px;display:flex;gap:8px"><button class="btn primary" id="vs" type="submit">${editing ? "Save" : "Add VIP"}</button>
+          ${editing ? `<button class="btn" type="button" id="vc">Cancel</button>` : ""}</p>
+        <div id="msg"></div>
+      </form></div>` : ""}`);
+    app.querySelectorAll("[data-edit]").forEach((b) => b.onclick = () => { editing = d.vips.find((v) => v.id === b.dataset.edit); headshot = null; render(); $("formcard").scrollIntoView({ behavior: "smooth" }); $("vn").focus(); });
+    app.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => {
+      const v = d.vips.find((x) => x.id === b.dataset.del);
+      if (!confirm(`Remove ${v.name}? Their name won't be added to any more photos.`)) return;
+      try { await api("/vips/delete", { v: token, id: v.id }); await reload(); } catch (e) { alert(e.message); }
+    });
+    if (!d.enabled) return;
+    if ($("vc")) $("vc").onclick = () => { editing = null; headshot = null; render(); };
+    $("hs").onchange = async () => {
+      const file = $("hs").files[0]; if (!file) return;
+      try { headshot = await shrink(file); $("ph").innerHTML = `<img src="${headshot}" alt="Headshot">`; $("msg").innerHTML = ""; }
+      catch (e) { $("msg").innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+    };
+    $("vf").onsubmit = async (e) => {
+      e.preventDefault();
+      const name = $("vn").value.trim();
+      const err = !name ? "Add the person's name." : !editing && !headshot ? "Add a headshot." : "";
+      if (err) { $("msg").innerHTML = `<div class="err">${esc(err)}</div>`; return; }
+      const keywords = $("vk").value.split(",").map((k) => k.trim()).filter(Boolean);
+      const events = [...app.querySelectorAll(".sess input:checked")].map((c) => c.value);
+      $("vs").disabled = true; $("vs").innerHTML = `<span class="spin"></span> ${headshot ? "Looking for them…" : "Saving…"}`;
+      try {
+        await api("/vips", { v: token, id: editing?.id, name, keywords, events, ...(headshot ? { photo: headshot } : {}) });
+        editing = null; headshot = null; await reload();
+      } catch (x) {
+        $("msg").innerHTML = `<div class="err">${esc(x.message)}</div>`;
+        $("vs").disabled = false; $("vs").textContent = editing ? "Save" : "Add VIP";
+      }
+    };
+  };
+  const reload = async () => { d = await api(`/vips?v=${token}`); render(); };
+  render();
+}
+
 // ----------------------------------------------------------------
 (async () => {
-  const e = q.get("e"), g = q.get("g");
+  const e = q.get("e"), g = q.get("g"), v = q.get("v");
+  if (v && TOKEN.test(v)) return vipPage(v);
   if (g && TOKEN.test(g)) return mine(g);
   if (e && TOKEN.test(e)) {
     let ev;
