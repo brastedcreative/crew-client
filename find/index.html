@@ -61,7 +61,9 @@ input[type=email]:focus{outline:2px solid var(--accent);outline-offset:1px}
 .ev{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 0}
 .lb{position:fixed;inset:0;background:rgba(10,12,11,.94);display:none;flex-direction:column;z-index:10}
 .lb.on{display:flex}
-.lb .bar{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px}
+.lb .bar{display:flex;gap:8px;justify-content:flex-end;align-items:center;padding:12px 16px}
+.lb .credit{margin-right:auto;color:#d7ddd9;font-size:13.5px;line-height:1.3;min-width:0}
+.lb .credit a{color:#fff}
 .lb .bar .btn{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff}
 .lb .pic{flex:1;display:flex;align-items:center;justify-content:center;padding:0 12px 16px;min-height:0}
 .lb img{max-width:100%;max-height:100%;object-fit:contain}
@@ -184,10 +186,11 @@ async function mine(token) {
       : `<div class="card"><p style="margin:0">${esc(empty)}</p></div>`}
     <div class="foot">This link is private to ${esc(d.email)}; anyone you share it with can see these photos. ${until ? `Your face data is deleted on ${esc(until)}.` : ""}
       <button class="linkbtn" id="del">Delete my data now</button></div>
-    <div class="lb" id="lb" role="dialog" aria-modal="true"><div class="bar"><a class="btn" id="dl" href="#">Download</a><button class="btn" id="x">Close</button></div><div class="pic"><img id="big" alt=""></div></div>`, false);
-  const lb = document.getElementById("lb"), big = document.getElementById("big"), dl = document.getElementById("dl");
+    <div class="lb" id="lb" role="dialog" aria-modal="true"><div class="bar"><div class="credit" id="cr"></div><a class="btn" id="dl" href="#">Download</a><button class="btn" id="x">Close</button></div><div class="pic"><img id="big" alt=""></div></div>`, false);
+  const lb = document.getElementById("lb"), big = document.getElementById("big"), dl = document.getElementById("dl"), cr = document.getElementById("cr");
+  const credit = (p) => !p.by ? "" : `Photo by ${esc(p.by)}${p.ig ? `<br><a href="https://www.instagram.com/${encodeURIComponent(p.ig)}/" target="_blank" rel="noopener">@${esc(p.ig)}</a>` : ""}`;
   let at = 0;
-  const open = (n) => { at = (n + d.photos.length) % d.photos.length; const p = d.photos[at]; big.src = p.l; dl.href = p.dl; lb.classList.add("on"); };
+  const open = (n) => { at = (n + d.photos.length) % d.photos.length; const p = d.photos[at]; big.src = p.l; dl.href = p.dl; cr.innerHTML = credit(p); lb.classList.add("on"); };
   app.querySelectorAll(".grid button").forEach((b) => b.onclick = () => open(Number(b.dataset.i)));
   document.getElementById("x").onclick = () => { lb.classList.remove("on"); big.removeAttribute("src"); };
   document.addEventListener("keydown", (e) => {
