@@ -244,7 +244,7 @@ async function vipPage(token) {
           <div class="chips">${v.ready ? `<span class="chip ok">${v.photos} ${v.photos === 1 ? "photo" : "photos"}</span>` : `<span class="chip">No face yet</span>`}
           ${v.headshot ? "" : `<span class="chip">No headshot in the app: Edit and choose it again</span>`}
           ${(v.keywords || []).map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div>
-          <div class="m" style="margin-top:6px">${v.events?.length ? "Only in: " + v.events.map((k) => esc(sessionName.get(k) || k)).join(", ") : "Any session"}</div></div>
+          <div class="m" style="margin-top:6px">${v.events?.length ? (v.anywhere === false ? "Only in: " : "Expected in: ") + v.events.map((k) => esc(sessionName.get(k) || k)).join(", ") + (v.anywhere === false ? "" : ". Also found in any other session") : "Any session"}</div></div>
         <div class="acts"><button class="btn" data-edit="${esc(v.id)}">Edit</button><button class="btn" data-del="${esc(v.id)}" aria-label="Remove ${esc(v.name)}">Remove</button></div></div>`).join("")
         : `<p class="m" style="margin:0">No VIPs yet.</p>`}
     </div>
@@ -259,8 +259,10 @@ async function vipPage(token) {
           <div class="m" style="margin-top:6px">Just them, facing the camera. Used to find them in the photos, and shown to your crew in the app's Shot List.</div></div></div>
         <label class="f" for="vk">Keywords <span class="m">(comma separated, optional)</span></label>
         <input id="vk" type="text" autocomplete="off" placeholder="Keynote speaker, CEO" value="${esc((editing?.keywords || []).join(", "))}">
-        <label class="f">Sessions <span class="m">(none ticked = any session)</span></label>
+        <label class="f">Sessions they're in <span class="m">(optional; none ticked = any session)</span></label>
         ${d.sessions.length ? `<div class="sess">${d.sessions.map((s) => `<label><input type="checkbox" value="${esc(s.key)}" ${editing?.events?.includes(s.key) ? "checked" : ""}> ${esc(sessionName.get(s.key))}</label>`).join("")}</div>` : `<p class="m">No sessions on the schedule yet.</p>`}
+        <label class="anyw" id="anyw" style="display:${editing?.events?.length ? "flex" : "none"};gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="va" ${editing?.anywhere === false ? "" : "checked"} style="margin-top:3px">
+          <span>Also find them in other sessions<br><span class="m">Outside their sessions, a name is only added on a very close match, so a lookalike isn't tagged by mistake.</span></span></label>
         <p style="margin-top:16px;display:flex;gap:8px"><button class="btn primary" id="vs" type="submit">${editing ? "Save" : "Add VIP"}</button>
           ${editing ? `<button class="btn" type="button" id="vc">Cancel</button>` : ""}</p>
         <div id="msg"></div>
@@ -272,6 +274,7 @@ async function vipPage(token) {
       try { await api("/vips/delete", { v: token, id: v.id }); await reload(); } catch (e) { alert(e.message); }
     });
     if (!d.enabled) return;
+    app.querySelectorAll(".sess input").forEach((c) => c.onchange = () => { $("anyw").style.display = app.querySelector(".sess input:checked") ? "flex" : "none"; });
     if ($("vc")) $("vc").onclick = () => { editing = null; headshot = null; render(); };
     $("hs").onchange = async () => {
       const file = $("hs").files[0]; if (!file) return;
@@ -287,7 +290,7 @@ async function vipPage(token) {
       const events = [...app.querySelectorAll(".sess input:checked")].map((c) => c.value);
       $("vs").disabled = true; $("vs").innerHTML = `<span class="spin"></span> ${headshot ? "Looking for them…" : "Saving…"}`;
       try {
-        await api("/vips", { v: token, id: editing?.id, name, keywords, events, ...(headshot ? { photo: headshot } : {}) });
+        await api("/vips", { v: token, id: editing?.id, name, keywords, events, anywhere: !events.length || $("va").checked, ...(headshot ? { photo: headshot } : {}) });
         editing = null; headshot = null; await reload();
       } catch (x) {
         $("msg").innerHTML = `<div class="err">${esc(x.message)}</div>`;
