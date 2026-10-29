@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Your headshots</title>
+<!-- Headshot booth: a guest's private link (?g=<guest token>). Backend: the `booth` Edge Function.
+     Source of truth: web/client/booth in the crew schedule app repo. -->
+<style>
+:root{--bg:#1B1C1B;--panel:#252624;--panel2:#2E2F2C;--line:#3A3B38;--ink:#ECECE8;--muted:#A3A49E;
+  --accent:#E58A9B;--btn:#7E2436;--bad:#F08A80;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI','Helvetica Neue',Arial,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+.wrap{max-width:960px;margin:0 auto;padding:0 16px}
+header{background:var(--panel);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:12px;padding-top:16px;padding-bottom:14px}
+header img{height:40px;width:auto;max-width:120px;border-radius:8px;background:#fff;padding:3px}
+h1{margin:0;font-size:26px;letter-spacing:-.02em;line-height:1.1}
+.sub{font-size:13px;color:var(--muted)}
+main{padding:18px 0 48px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card b{font-size:16px}.card p{margin:6px 0 0;color:var(--muted)}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.grid button{border:0;padding:0;border-radius:8px;overflow:hidden;background:var(--panel2);aspect-ratio:4/5;cursor:zoom-in}
+.grid img{width:100%;height:100%;object-fit:cover;display:block}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-weight:600;text-decoration:none;color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--btn);border-color:var(--btn);color:#fff}
+.lb{position:fixed;inset:0;background:rgba(10,10,10,.95);display:none;flex-direction:column;z-index:10}
+.lb.on{display:flex}
+.lb .top{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px}
+.lb .pic{flex:1;display:flex;align-items:center;justify-content:center;padding:0 12px 16px;min-height:0}
+.lb img{max-width:100%;max-height:100%;object-fit:contain}
+.foot{font-size:12.5px;color:var(--muted)}
+.link{background:none;border:0;padding:0;color:var(--accent);font-weight:600;text-decoration:underline;cursor:pointer;font-size:inherit}
+</style>
+</head>
+<body>
+<div id="app"><main><div class="wrap"><p class="sub">Loading…</p></div></main></div>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Photo">
+  <div class="top"><a class="btn primary" id="lbdl" href="#" download>Download</a><button class="btn" id="lbx">Close</button></div>
+  <div class="pic"><img id="lbimg" alt=""></div>
+</div>
+<script>
+const API = "https://trgwbsqwobqkbtyuoric.supabase.co/functions/v1/booth";
+const G = new URLSearchParams(location.search).get("g") || "";
+const app = document.getElementById("app");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fail = (m) => { app.innerHTML = `<main><div class="wrap"><div class="card"><b>Hmm.</b><p>${esc(m)}</p></div></div></main>`; };
+
+async function api(path, body) {
+  const res = await fetch(API + path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || "Something went wrong. Please try again.");
+  return j;
+}
+
+function render(d) {
+  const logo = d.logo?.data && /^data:image\//.test(d.logo.data) ? `<img src="${esc(d.logo.data)}" alt="">` : "";
+  const n = d.photos.length;
+  const waiting = !n && (d.delivery === "edited"
+    ? `<div class="card"><b>Your photos are being edited</b><p>${d.shot ? `You sat for your headshot and we have ${d.shot} photos of you. ` : ""}We'll email you as soon as your edited set is ready.</p></div>`
+    : `<div class="card"><b>${d.status === "done" ? "Your photos are on their way" : "See you at the booth"}</b><p>${d.status === "done"
+        ? "They'll show up here in a few minutes. We'll email you too."
+        : "Your headshots appear here a few minutes after your session, and we'll email you when they're ready."}</p></div>`);
+  app.innerHTML = `<header><div class="wrap">${logo}<div><h1>Your headshots</h1><div class="sub">${esc(d.name)} · ${esc(d.booth)} · ${esc(d.studio)}</div></div></div></header>
+  <main><div class="wrap" style="display:flex;flex-direction:column;gap:14px">
+    ${waiting || `<div class="bar"><span>${n} photo${n === 1 ? "" : "s"}</span><span>Tap a photo to see it full size and download it.</span></div>
+      <div class="grid">${d.photos.map((p, i) => `<button data-i="${i}" aria-label="Photo ${i + 1}"><img src="${esc(p.s)}" alt="" loading="lazy"></button>`).join("")}</div>`}
+    <p class="foot">Keep this link: it's how you get back to your photos, and anyone with it can see them. Your face data is deleted ${d.delete_at ? "on " + new Date(d.delete_at).toLocaleDateString([], { month: "long", day: "numeric" }) : "after the event"}.
+      <button class="link" id="forget">Delete my data now</button></p>
+  </div></main>`;
+  app.querySelectorAll(".grid button").forEach((b) => b.onclick = () => open(d.photos[+b.dataset.i]));
+  document.getElementById("forget").onclick = async () => {
+    if (!confirm("Delete your face data and this link? Your photos won't be reachable from it any more.")) return;
+    try { await api("/forget", { g: G }); fail("Done. Your face data and this link have been deleted."); } catch (e) { alert(e.message); }
+  };
+}
+
+const lb = document.getElementById("lb");
+function open(p) { document.getElementById("lbimg").src = p.l; document.getElementById("lbdl").href = p.dl; lb.classList.add("on"); document.getElementById("lbx").focus(); }
+document.getElementById("lbx").onclick = () => lb.classList.remove("on");
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") lb.classList.remove("on"); });
+
+(async () => {
+  if (!/^[A-Za-z0-9]{32,128}$/.test(G)) return fail("This link isn't valid.");
+  try {
+    const d = await api(`/photos?g=${encodeURIComponent(G)}`);
+    render(d);
+    // While they wait, check again every 30 s
+    if (!d.photos.length) {
+      const t = setInterval(async () => { try { const x = await api(`/photos?g=${encodeURIComponent(G)}`); if (x.photos.length) { clearInterval(t); render(x); } } catch {} }, 30_000);
+    }
+  } catch (e) { fail(e.message); }
+})();
+</script>
+</body>
+</html>

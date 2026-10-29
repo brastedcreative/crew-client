@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Headshot check-in</title>
+<!-- Headshot booth: the iPad check-in (?k=<kiosk token>). Backend: the `booth` Edge Function.
+     Source of truth: web/client/booth in the crew schedule app repo. Served at coverage.joshbrasted.com/booth/. -->
+<style>
+:root{--bg:#1B1C1B;--panel:#252624;--panel2:#2E2F2C;--input:#2A2B28;--line:#3A3B38;--ink:#ECECE8;--muted:#A3A49E;
+  --accent:#E58A9B;--soft:#3D2329;--btn:#7E2436;--ok:#76CC98;--ok-soft:#1F3428;--bad:#F08A80;
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI','Helvetica Neue',Arial,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font);-webkit-text-size-adjust:100%;
+  -webkit-user-select:none;user-select:none;overscroll-behavior:none}
+button,input{font:inherit;color:inherit}
+#app{min-height:100%;display:flex;flex-direction:column}
+header{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 32px;background:var(--panel);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.brand img{width:44px;height:44px;border-radius:9px;object-fit:contain;background:#fff;flex:none}
+.brand b{display:block;font-size:26px;letter-spacing:-.02em;line-height:1.1}
+.brand span{font-size:14px;color:var(--muted)}
+.dots{display:flex;gap:8px}.dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--accent)}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:28px 32px}
+.box{width:100%;max-width:640px;display:flex;flex-direction:column;gap:18px}
+h1{font-size:40px;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1}
+h2{font-size:28px;font-weight:700;letter-spacing:-.01em;margin:0}
+p{margin:0;font-size:18px;line-height:1.45;color:var(--muted)}
+.btn{min-height:60px;padding:0 26px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:20px;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--btn);border-color:var(--btn);color:#fff}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:12px}.row .btn{flex:1}
+input[type=text],input[type=email]{width:100%;min-height:62px;padding:0 18px;border-radius:12px;border:1px solid var(--line);background:var(--input);font-size:22px;-webkit-user-select:text;user-select:text}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+label{font-size:15px;font-weight:600;color:var(--muted);display:block;margin-bottom:8px}
+.list{display:flex;flex-direction:column;gap:8px}
+.pick{display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;min-height:64px;padding:10px 18px;border-radius:12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:20px}
+.pick small{color:var(--muted);font-size:15px}.pick em{font-style:normal;color:var(--ok);font-size:14px}
+.add{background:none;border:1px dashed var(--line);color:var(--accent)}
+.cam{position:relative;aspect-ratio:4/3;border-radius:16px;overflow:hidden;background:#000;border:1px solid var(--line)}
+.cam video,.cam img{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.cam .oval{position:absolute;inset:12% 30%;border:3px dashed rgba(255,255,255,.55);border-radius:50%}
+.check{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:12px;background:var(--panel);border:1px solid var(--line);font-size:17px;line-height:1.45;cursor:pointer}
+.check input{width:28px;height:28px;flex:none;accent-color:var(--btn);margin:0}
+.err{background:#3D2120;color:var(--bad);border-radius:10px;padding:12px 16px;font-size:17px}
+.done{text-align:center;align-items:center}
+.big{font-size:88px;font-weight:700;color:var(--accent);line-height:1}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid currentColor;border-right-color:transparent;animation:s .8s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes s{to{transform:rotate(360deg)}}
+@media (max-width:700px){header{padding:14px 16px}main{padding:20px 16px}h1{font-size:30px}}
+</style>
+</head>
+<body>
+<div id="app"><main><p>Loading…</p></main></div>
+<script>
+const API = "https://trgwbsqwobqkbtyuoric.supabase.co/functions/v1/booth";
+const K = new URLSearchParams(location.search).get("k") || "";
+const app = document.getElementById("app");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let booth = null, st = {}, stream = null, idle = null;
+
+async function api(path, body) {
+  const res = await fetch(API + path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || "Something went wrong. Please try again.");
+  return j;
+}
+
+const steps = () => booth.matching === "face" ? ["find", "details", "selfie", "consent"] : ["find", "details", "consent"];
+function frame(inner, step) {
+  const logo = booth.logo?.data && /^data:image\//.test(booth.logo.data) ? `<img src="${esc(booth.logo.data)}" alt="">` : "";
+  const dots = step ? `<div class="dots" aria-hidden="true">${steps().map((s) => `<i class="${s === step ? "on" : ""}"></i>`).join("")}</div>` : "";
+  app.innerHTML = `<header><div class="brand">${logo}<div><b>${esc(booth.name)}</b><span>${esc(booth.studio || "")}</span></div></div>${dots}</header>
+    <main><div class="box">${inner}</div></main>`;
+  // Walk-away reset: back to the start after 90 s without a tap
+  clearTimeout(idle);
+  idle = step ? setTimeout(reset, 90_000) : null;
+}
+function stopCam() { if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; } }
+function reset() { stopCam(); st = {}; welcome(); }
+const showErr = (msg) => { const e = document.getElementById("err"); if (e) { e.hidden = false; e.textContent = msg; } };
+
+function welcome() {
+  if (!booth.open) return frame(`<div class="done box"><h1>The booth is closed</h1><p>Thanks for stopping by.</p></div>`);
+  frame(`<h1>Get your headshot</h1>
+    <p>Check in here, ${booth.matching === "face" ? "take a quick selfie, " : ""}and we'll send your photos straight to you${booth.delivery === "live" ? " a few minutes after your session" : " once they're edited"}.</p>
+    <button class="btn primary" id="go">Tap to check in</button>
+    ${booth.waiting ? `<p>${booth.waiting} ${booth.waiting === 1 ? "person" : "people"} in line right now.</p>` : ""}`);
+  document.getElementById("go").onclick = () => booth.has_list ? find() : details();
+}
+
+function find() {
+  frame(`<h2>Find your name</h2>
+    <input type="text" id="q" placeholder="Start typing your name" autocomplete="off" autocapitalize="words" spellcheck="false">
+    <div class="list" id="res"></div>
+    ${booth.walkups ? `<button class="pick add" id="add">+ I'm not on the list: add my name</button>` : ""}
+    <button class="btn" id="back">Back</button>`, "find");
+  const q = document.getElementById("q"), res = document.getElementById("res");
+  let t = null, n = 0;
+  q.focus();
+  q.oninput = () => {
+    clearTimeout(t);
+    const v = q.value.trim();
+    if (v.length < 2) { res.innerHTML = ""; return; }
+    t = setTimeout(async () => {
+      const mine = ++n;
+      try {
+        const { matches } = await api(`/roster?k=${encodeURIComponent(K)}&q=${encodeURIComponent(v)}`);
+        if (mine !== n) return;
+        res.innerHTML = matches.length ? matches.map((m, i) => `<button class="pick" data-i="${i}"><span>${esc(m.name)}${m.company ? `<br><small>${esc(m.company)}</small>` : ""}</span>${m.checked_in ? "<em>Checked in</em>" : ""}</button>`).join("")
+          : `<p>No one by that name yet.${booth.walkups ? " Tap the button below to add yours." : " Ask the team for help."}</p>`;
+        res.querySelectorAll(".pick").forEach((b) => b.onclick = () => { const m = matches[+b.dataset.i]; st = { roster: m, name: m.name, company: m.company || "" }; details(); });
+      } catch (e) { res.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+    }, 200);
+  };
+  const add = document.getElementById("add");
+  if (add) add.onclick = () => { st = { name: q.value.trim() }; details(); };
+  document.getElementById("back").onclick = reset;
+}
+
+function details() {
+  const r = st.roster;
+  frame(`<h2>${r ? `Hi ${esc(r.name.split(" ")[0])}` : "Your details"}</h2>
+    ${r ? "" : `<div><label for="name">Your name</label><input type="text" id="name" value="${esc(st.name || "")}" autocomplete="off" autocapitalize="words"></div>`}
+    <div><label for="email">${r?.has_email ? "Email (leave blank to use the one on the guest list)" : "Email, so we can send your photos"}</label>
+      <input type="email" id="email" value="${esc(st.email || "")}" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="email"></div>
+    ${r ? "" : `<div><label for="co">Company (optional)</label><input type="text" id="co" value="${esc(st.company || "")}" autocomplete="off"></div>`}
+    <div class="err" id="err" hidden></div>
+    <div class="row"><button class="btn" id="back">Back</button><button class="btn primary" id="next">Next</button></div>`, "details");
+  document.getElementById("back").onclick = () => booth.has_list ? find() : reset();
+  document.getElementById("next").onclick = () => {
+    const name = r ? r.name : document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    if (!name) return showErr("Add your name.");
+    if (!(r?.has_email && !email) && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return showErr("Enter a valid email address.");
+    Object.assign(st, { name, email, company: r ? st.company : document.getElementById("co").value.trim() });
+    booth.matching === "face" ? selfie() : consent();
+  };
+}
+
+async function selfie() {
+  frame(`<h2>Take a quick selfie</h2>
+    <p>Look at the iPad with nothing covering your face. We use it to find your headshots.</p>
+    <div class="cam"><video id="v" playsinline autoplay muted></video><div class="oval"></div></div>
+    <div class="err" id="err" hidden></div>
+    <div class="row"><button class="btn" id="back">Back</button><button class="btn primary" id="snap">Take photo</button></div>`, "selfie");
+  document.getElementById("back").onclick = () => { stopCam(); details(); };
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 } }, audio: false });
+    document.getElementById("v").srcObject = stream;
+  } catch { showErr("The camera isn't available. Check the iPad's camera permission for this page."); }
+  document.getElementById("snap").onclick = () => {
+    const v = document.getElementById("v");
+    if (!v.videoWidth) return;
+    const scale = Math.min(1, 1280 / v.videoWidth), c = document.createElement("canvas");
+    c.width = Math.round(v.videoWidth * scale); c.height = Math.round(v.videoHeight * scale);
+    c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+    st.selfie = c.toDataURL("image/jpeg", 0.85);
+    stopCam();
+    frame(`<h2>Looking good?</h2><div class="cam"><img src="${st.selfie}" alt="Your selfie"></div>
+      <div class="row"><button class="btn" id="retake">Retake</button><button class="btn primary" id="ok">Use this photo</button></div>`, "selfie");
+    document.getElementById("retake").onclick = selfie;
+    document.getElementById("ok").onclick = consent;
+  };
+}
+
+function consent() {
+  const face = booth.matching === "face";
+  frame(`<h2>One last thing</h2>
+    <label class="check"><input type="checkbox" id="agree"><span>${face
+      ? `I agree that ${esc(booth.studio || "the photographer")} can use face matching (AI) to compare my selfie with the photos from this booth, so my headshots come to me. My selfie isn't kept; its face data is deleted within ${booth.keep_days} days after the event, or sooner from my photo link.`
+      : `I agree that ${esc(booth.studio || "the photographer")} can keep my name and email to send me my headshots, until ${booth.keep_days} days after the event.`}</span></label>
+    ${booth.event_photos ? `<label class="check"><input type="checkbox" id="more"><span>Also send me photos I'm in from the rest of the event.</span></label>` : ""}
+    <div class="err" id="err" hidden></div>
+    <div class="row"><button class="btn" id="back">Back</button><button class="btn primary" id="send" disabled>Check me in</button></div>`, "consent");
+  const agree = document.getElementById("agree"), send = document.getElementById("send");
+  agree.onchange = () => { send.disabled = !agree.checked; };
+  document.getElementById("back").onclick = () => face ? selfie() : details();
+  send.onclick = async () => {
+    send.disabled = true; send.innerHTML = `<span class="spin"></span>`;
+    try {
+      const r = await api("/checkin", { k: K, roster_id: st.roster?.id || null, name: st.name, email: st.email, company: st.company,
+        consent: true, event_photos: !!document.getElementById("more")?.checked, selfie: st.selfie || null });
+      done(r);
+    } catch (e) {
+      showErr(e.message); send.disabled = false; send.textContent = "Check me in";
+    }
+  };
+}
+
+function done(r) {
+  frame(`<div class="box done"><h1>You're checked in, ${esc(r.first_name)}</h1>
+    <div class="big">${r.position}</div><p>${r.position === 1 ? "You're next in line." : "That's your place in line."}</p>
+    <p>We've emailed you a link. Your photos appear there ${r.delivery === "live" ? "a few minutes after your session" : "once they're edited"}.</p>
+    <button class="btn primary" id="next">Done · next person</button></div>`);
+  document.getElementById("next").onclick = reset;
+  clearTimeout(idle); idle = setTimeout(reset, 20_000);
+}
+
+(async () => {
+  if (!/^[A-Za-z0-9]{32,128}$/.test(K)) { app.innerHTML = `<main><p>This check-in link isn't valid.</p></main>`; return; }
+  try { booth = await api(`/kiosk?k=${encodeURIComponent(K)}`); welcome(); }
+  catch (e) { app.innerHTML = `<main><p>${esc(e.message)}</p></main>`; }
+  // Keep the line count and open/closed state fresh between guests
+  setInterval(async () => { if (!idle) { try { booth = await api(`/kiosk?k=${encodeURIComponent(K)}`); welcome(); } catch {} } }, 60_000);
+})();
+</script>
+</body>
+</html>
