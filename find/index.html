@@ -142,6 +142,21 @@ function poster(ev, token) {
   else box.textContent = link;
 }
 
+// ---------------------------------------------------------------- Spot My Photos events (?e=… on a desk that uses it)
+// Our sign-up is off. The page (and the printed poster) shows the Spot My Photos QR uploaded to the desk, and a
+// guest who opens the link on their phone goes straight to Spot My Photos when the desk gave its link.
+function smp(ev, print) {
+  const link = /^https:\/\//.test(ev.smp_link || "") ? ev.smp_link : "";
+  const qr = /^data:image\/(png|jpeg|webp);base64,/.test(ev.smp_qr || "") ? ev.smp_qr : "";
+  if (!print && link) { location.replace(link); return; }
+  if (!qr && !link) return page(ev, `<div class="card"><h2>Find your photos</h2><p>Photos from ${esc(ev.name)} are shared through Spot My Photos. Scan the Spot My Photos QR code at the event to find yours.</p></div>`);
+  page(ev, `<div class="poster"><h1>Find your photos</h1>
+    ${qr ? `<div class="q"><img src="${esc(qr)}" alt="Spot My Photos QR code" style="width:300px;height:300px;object-fit:contain"></div>` : ""}
+    <div class="steps">1. Scan with your phone camera<br>2. Follow the steps on Spot My Photos<br>3. Get the photos you're in</div>
+    <p class="m" style="margin-top:22px">${esc(ev.name)} · Josh Brasted Photography</p>
+    <p class="noprint" style="margin-top:22px">${print ? `<button class="btn primary" onclick="print()">Print</button> ` : ""}${link ? `<a class="btn" href="${esc(link)}">Open Spot My Photos</a>` : ""}</p></div>`, false);
+}
+
 // ---------------------------------------------------------------- sign-up (?e=…)
 function signup(ev, token) {
   if (!ev.open) return page(ev, `<div class="card"><h2>Matching is closed</h2><p>Photo matching for ${esc(ev.name)} has ended. If you already signed up, your emailed link still works until it expires.</p></div>`);
@@ -310,6 +325,7 @@ async function vipPage(token) {
   if (e && TOKEN.test(e)) {
     let ev;
     try { ev = await api(`/event?e=${e}`); } catch (x) { return fail(x.message); }
+    if (ev.engine === "spotmyphotos") return smp(ev, !!q.get("print"));
     return q.get("print") ? poster(ev, e) : signup(ev, e);
   }
   fail("Scan the QR code at your event to find your photos, or open the link we emailed you.");
